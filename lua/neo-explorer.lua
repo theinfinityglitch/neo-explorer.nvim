@@ -42,11 +42,17 @@ local debug = function(solution)
       if folder.parent_path ~= nil then
         print('Folder parent path: ' .. folder.parent_path)
       end
-      if folder.projects ~= nil then
-        list_projects(folder.projects)
+      if folder.guid ~= nil then
+        print('Folder GUID: ' .. folder.guid)
+      end
+      if folder.parent_guid ~= nil then
+        print('Folder parent GUID: ' .. folder.parent_guid)
       end
       if folder.children ~= nil then
         list_folders(folder.children, list_folders)
+      end
+      if folder.projects ~= nil then
+        list_projects(folder.projects)
       end
       print('--- Folder ' .. folder.name .. ' End ---')
     end

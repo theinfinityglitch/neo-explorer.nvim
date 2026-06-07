@@ -37,5 +37,7 @@
 ---@field name string
 ---@field path string
 ---@field parent_path? string
+---@field guid? string
+---@field parent_guid? string
 ---@field children DotnetFolder[]
 ---@field projects DotnetProject[]
