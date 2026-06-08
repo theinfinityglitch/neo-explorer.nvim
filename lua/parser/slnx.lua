@@ -1,7 +1,20 @@
 local xml2lua = require('xml2lua')
-local handler = require('xmlhandler.tree')
+
+local ok, tree_handler = pcall(require, 'xmlhandler.tree')
+
+if not ok then
+  tree_handler = require('xml2lua.xmlhandler.tree')
+end
 
 local M = {}
+
+local function new_tree_handler()
+  if type(tree_handler.new) == 'function' then
+    return tree_handler:new()
+  end
+
+  return tree_handler
+end
 
 function M.parse(root_dir, target_file)
   local file = io.open(target_file, 'r')
@@ -11,6 +24,7 @@ function M.parse(root_dir, target_file)
   local content = file:read('*a')
   file:close()
 
+  local handler = new_tree_handler()
   local parser = xml2lua.parser(handler)
   parser:parse(content)
 

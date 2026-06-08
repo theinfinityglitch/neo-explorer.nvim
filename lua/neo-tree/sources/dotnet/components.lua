@@ -5,21 +5,22 @@ local M = {}
 
 local icons = {
   solution = '󰘐',
-  folder_closed = '',
-  folder_open = '',
-  project = '',
+  folder_closed = '',
+  folder_open = '',
+  project = '󰏗',
 }
 
 M.icon = function(config, node, state)
   local icon = ' '
   local hl = highlights.FILE_ICON
+  local dotnet_type = node.extra and node.extra.dotnet_type
 
-  if node.type == 'dotnet_solution' then
+  if dotnet_type == 'solution' then
     icon = icons.solution
-  elseif node.type == 'dotnet_folder' then
+  elseif dotnet_type == 'folder' then
     hl = highlights.DIRECTORY_ICON
     icon = node:is_expanded() and icons.folder_open or icons.folder_closed
-  elseif node.type == 'dotnet_project' then
+  elseif dotnet_type == 'project' then
     icon = icons.project
   end
 
@@ -31,10 +32,11 @@ end
 
 M.name = function(config, node, state)
   local hl = highlights.FILE_NAME
+  local dotnet_type = node.extra and node.extra.dotnet_type
 
-  if node.type == 'dotnet_solution' then
+  if dotnet_type == 'solution' then
     hl = highlights.ROOT_NAME
-  elseif node.type == 'dotnet_folder' then
+  elseif dotnet_type == 'folder' then
     hl = highlights.DIRECTORY_NAME
   end
 

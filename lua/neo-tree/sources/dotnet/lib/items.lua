@@ -8,8 +8,11 @@ local function project_node(project)
   return {
     id = make_id('project', project.path),
     name = project.name,
-    type = 'dotnet_project',
+    type = 'file',
     path = project.path,
+    extra = {
+      dotnet_type = 'project',
+    },
   }
 end
 
@@ -27,8 +30,12 @@ local function folder_node(folder)
   return {
     id = make_id('folder', folder.path),
     name = folder.name,
-    type = 'dotnet_folder',
+    type = 'directory',
     path = folder.path,
+    loaded = true,
+    extra = {
+      dotnet_type = 'folder',
+    },
     children = children,
   }
 end
@@ -48,8 +55,12 @@ function M.build_nodes(solution)
     {
       id = make_id('solution', solution.path),
       name = solution.name,
-      type = 'dotnet_solution',
+      type = 'directory',
       path = solution.path,
+      loaded = true,
+      extra = {
+        dotnet_type = 'solution',
+      },
       children = children,
     },
   }

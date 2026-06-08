@@ -10,12 +10,14 @@ M.open = function(state, toggle_directory)
     return
   end
 
-  if node.type == 'dotnet_solution' or node.type == 'dotnet_folder' then
-    toggle_directory(node)
+  local dotnet_type = node.extra and node.extra.dotnet_type
+
+  if dotnet_type == 'solution' or dotnet_type == 'folder' then
+    cc.toggle_node(state, toggle_directory)
     return
   end
 
-  if node.type == 'dotnet_project' then
+  if dotnet_type == 'project' then
     vim.cmd.edit(vim.fn.fnameescape(node.path))
   end
 end

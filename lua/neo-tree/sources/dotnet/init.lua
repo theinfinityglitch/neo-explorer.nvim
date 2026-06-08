@@ -1,5 +1,4 @@
 local renderer = require('neo-tree.ui.renderer')
-local manager = require('neo-tree.sources.manager')
 
 local sln = require('parser.sln')
 local slnx = require('parser.slnx')
@@ -35,6 +34,7 @@ M.navigate = function(state, path)
   local file, ext = find_solution(path)
 
   if not file then
+    state.default_expanded_nodes = {}
     renderer.show_nodes({}, state)
     return
   end
@@ -48,11 +48,15 @@ M.navigate = function(state, path)
   end
 
   if not solution then
+    state.default_expanded_nodes = {}
     renderer.show_nodes({}, state)
     return
   end
 
-  renderer.show_nodes(items.build_nodes(solution), state)
+  local nodes = items.build_nodes(solution)
+  state.default_expanded_nodes = { nodes[1].id }
+
+  renderer.show_nodes(nodes, state)
 end
 
 M.get_cwd = function(state)
@@ -71,19 +75,13 @@ M.default_config = {
   },
 
   renderers = {
-    dotnet_solution = {
+    directory = {
       { 'indent' },
       { 'icon' },
       { 'name' },
     },
 
-    dotnet_folder = {
-      { 'indent' },
-      { 'icon' },
-      { 'name' },
-    },
-
-    dotnet_project = {
+    file = {
       { 'indent' },
       { 'icon' },
       { 'name' },
