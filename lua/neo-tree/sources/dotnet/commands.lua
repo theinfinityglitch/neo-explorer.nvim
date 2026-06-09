@@ -193,13 +193,14 @@ M.add = function(state, callback)
     table.insert(templates, { type = 'header' })
     
     local template_dir = debug.getinfo(1, 'S').source:match('@(.+)/commands.lua$') .. '/templates'
-    for template_name in vim.fn.glob(template_dir .. '/*.cs', false, true):gmatch('[^\n]+') do
-      local short_name = vim.fn.fnamemodify(template_name, ':t:r')
+    local template_files = vim.fn.glob(template_dir .. '/*.cs', false, true)
+    for _, template_file in ipairs(template_files) do
+      local short_name = vim.fn.fnamemodify(template_file, ':t:r')
       table.insert(choices, short_name:sub(1, 1):upper() .. short_name:sub(2))
       table.insert(templates, {
         type = 'custom',
         name = short_name,
-        template_file = template_name,
+        template_file = template_file,
         namespace = project_info.computed_namespace,
       })
     end
