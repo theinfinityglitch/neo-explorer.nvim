@@ -43,16 +43,25 @@ local function parse_dotnet_templates(lines)
       end
     else
       if line:match('^%s*$') then
-        break
+        goto continue
       end
       if line:match('^%s*-+') then
         goto continue
       end
+      if line:match('^%s*item%s+') or line:match('^%s*project%s+') then
+        goto continue
+      end
 
-      local raw_name = vim.trim(line:sub(1, 42) or '')
-      local raw_short = vim.trim(line:sub(43, 72) or '')
-      if raw_name ~= '' and raw_short ~= '' then
-        table.insert(templates, { name = raw_name, short = raw_short })
+      local name, short = line:match('^%s*(.-)%s%s+([%w%-%.,]+)%s+%[?')
+      if not name then
+        name, short = line:match('^%s*(.-)%s%s+([%w%-%.,]+)%s*$')
+      end
+      if name and short then
+        name = vim.trim(name)
+        short = vim.trim(short)
+        if name ~= '' and short ~= '' then
+          table.insert(templates, { name = name, short = short })
+        end
       end
     end
     ::continue::
@@ -101,7 +110,7 @@ M.add = function(state, callback)
   local templates = {}
 
   if vim.fn.executable('dotnet') == 1 then
-    local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item' })
+    local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--columns-all' })
     if vim.v.shell_error == 0 and lines and #lines > 0 then
       templates = parse_dotnet_templates(lines)
     end
@@ -109,7 +118,7 @@ M.add = function(state, callback)
 
   local choices = { 'Empty file' }
   for _, template in ipairs(templates) do
-    table.insert(choices, string.format('%s — %s', template.short, template.name))
+    table.insert(choices, template.name)
   end
 
   vim.ui.select(choices, { prompt = 'Create file from template:' }, function(choice, idx)
@@ -157,30 +166,13 @@ M.add_from_template = function(state)
     return
   end
 
-  local lines = vim.fn.systemlist('dotnet new --list')
+  local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--columns-all' })
   if not lines or #lines == 0 then
     vim.notify('Failed to list dotnet templates', vim.log.levels.ERROR)
     return
   end
 
-  local templates = {}
-  local started = false
-  for _, line in ipairs(lines) do
-    if line:match('^%s*-+$') then
-      started = true
-      goto continue
-    end
-    if not started then
-      goto continue
-    end
-    local short = line:match('%s([%w%-]+)%s+%w+%s*$') or line:match('%s([%w%-]+)%s*$')
-    local name = line:match('^%s*(.-)%s[%s%w%-]+[%s%w%-]+$') or line
-    if short then
-      templates[#templates + 1] = { short = short, name = vim.trim(name) }
-    end
-    ::continue::
-  end
-
+  local templates = parse_dotnet_templates(lines)
   if #templates == 0 then
     vim.notify('No dotnet templates found', vim.log.levels.WARN)
     return
@@ -188,7 +180,7 @@ M.add_from_template = function(state)
 
   local choices = {}
   for _, t in ipairs(templates) do
-    table.insert(choices, t.short .. ' — ' .. t.name)
+    table.insert(choices, t.name)
   end
 
   vim.ui.select(choices, { prompt = 'dotnet template:' }, function(choice, idx)
