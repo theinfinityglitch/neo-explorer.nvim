@@ -37,7 +37,7 @@ M.parse = function(root_dir, target_file)
   local folders_by_guid = {}
 
   for project_type, project_name, project_path, project_guid in
-    content:gmatch('Project%("({[A-Fa-f0-9%-]+})"%) = "([^"]+)", "([^"]+)", "({[A-Fa-f0-9%-]+})"')
+  content:gmatch('Project%("({[A-Fa-f0-9%-]+})"%) = "([^"]+)", "([^"]+)", "({[A-Fa-f0-9%-]+})"')
   do
     project_path = project_path:gsub('\\', '/')
 
@@ -66,6 +66,8 @@ M.parse = function(root_dir, target_file)
         guid = project_guid,
         references = {},
         packages = {},
+        properties = { target_frameworks = {} },
+        imports = {},
       }
 
       projects_by_guid[project_guid] = project
