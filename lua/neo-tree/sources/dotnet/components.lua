@@ -28,6 +28,9 @@ M.icon = function(config, node, state)
     icon = node:is_expanded() and icons.folder_open or icons.folder_closed
   elseif dotnet_type == 'project' then
     icon = icons.project
+  elseif dotnet_type == 'project_files' or dotnet_type == 'project_folder' then
+    hl = highlights.DIRECTORY_ICON
+    icon = node:is_expanded() and icons.folder_open or icons.folder_closed
   elseif dotnet_type == 'dependencies' then
     hl = highlights.SYMBOLIC_LINK_TARGET
     icon = icons.dependencies
@@ -44,6 +47,10 @@ M.icon = function(config, node, state)
     icon = icons.import
   end
 
+  if icon == ' ' then
+    return common.icon(config, node, state)
+  end
+
   return {
     text = icon .. ' ',
     highlight = hl,
@@ -56,7 +63,7 @@ M.name = function(config, node, state)
 
   if dotnet_type == 'solution' then
     hl = highlights.ROOT_NAME
-  elseif dotnet_type == 'folder' or dotnet_type == 'project' then
+  elseif dotnet_type == 'folder' or dotnet_type == 'project' or dotnet_type == 'project_folder' or dotnet_type == 'project_files' then
     hl = highlights.DIRECTORY_NAME
   elseif dotnet_type == 'dependencies' or dotnet_type == 'dependency_group' then
     hl = highlights.SYMBOLIC_LINK_TARGET
