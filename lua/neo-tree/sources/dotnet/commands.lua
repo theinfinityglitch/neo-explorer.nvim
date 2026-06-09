@@ -1,6 +1,7 @@
 local cc = require('neo-tree.sources.common.commands')
 local fs_actions = require('neo-tree.sources.filesystem.lib.fs_actions')
 local manager = require('neo-tree.sources.manager')
+local dotnet_source = require('neo-tree.sources.dotnet.init')
 
 local M = {}
 
@@ -72,6 +73,39 @@ M.open = function(state, toggle_directory)
   if node.path then
     vim.cmd.edit(vim.fn.fnameescape(node.path))
   end
+end
+
+M.select_solution = function(state)
+  local cwd = state.path or vim.fn.getcwd()
+  local solutions = dotnet_source.find_solutions(cwd)
+
+  if #solutions == 0 then
+    vim.notify('No .sln or .slnx solutions found in ' .. cwd, vim.log.levels.WARN)
+    return
+  end
+
+  if #solutions == 1 then
+    dotnet_source.load_solution(state, cwd, solutions[1])
+    if dotnet_source.set_roslyn_target then
+      dotnet_source.set_roslyn_target(solutions[1].path)
+    end
+    return
+  end
+
+  local options = {}
+  for _, solution in ipairs(solutions) do
+    table.insert(options, vim.fn.fnamemodify(solution.path, ':t') .. ' (' .. solution.ext .. ')')
+  end
+
+  vim.ui.select(options, { prompt = 'Select solution:' }, function(choice, idx)
+    if not choice or not idx then
+      return
+    end
+    dotnet_source.load_solution(state, cwd, solutions[idx])
+    if dotnet_source.set_roslyn_target then
+      dotnet_source.set_roslyn_target(solutions[idx].path)
+    end
+  end)
 end
 
 M.delete = function(state, callback)

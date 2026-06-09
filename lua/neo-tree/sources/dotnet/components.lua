@@ -75,7 +75,10 @@ M.name = function(config, node, state)
   local hl = highlights.FILE_NAME
   if dotnet_type == 'solution' then
     hl = highlights.ROOT_NAME
-  elseif dotnet_type == 'folder' or dotnet_type == 'project' or dotnet_type == 'project_folder' or dotnet_type == 'project_files' then
+  elseif dotnet_type == 'folder'
+      or dotnet_type == 'project'
+      or dotnet_type == 'project_folder'
+      or dotnet_type == 'project_files' then
     hl = highlights.DIRECTORY_NAME
   elseif dotnet_type == 'dependencies' or dotnet_type == 'dependency_group' then
     hl = highlights.SYMBOLIC_LINK_TARGET
@@ -89,7 +92,15 @@ end
 
 M.git_status = function(config, node, state)
   local dotnet_type = node.extra and node.extra.dotnet_type
-  if dotnet_type and dotnet_type ~= 'solution' and dotnet_type ~= 'folder' and dotnet_type ~= 'project' and dotnet_type ~= 'project_folder' and dotnet_type ~= 'project_files' and dotnet_type ~= 'project_file' and dotnet_type ~= 'project_reference' then
+  if dotnet_type and (
+        dotnet_type ~= 'solution'
+        and dotnet_type ~= 'folder'
+        and dotnet_type ~= 'project'
+        and dotnet_type ~= 'project_folder'
+        and dotnet_type ~= 'project_files'
+        and dotnet_type ~= 'project_file'
+        and dotnet_type ~= 'project_reference'
+      ) then
     return {}
   end
 
