@@ -62,6 +62,74 @@ M.add_directory = function(state, callback)
   end, directory)
 end
 
+M.add_from_template = function(state)
+  local node = get_folder_node(state)
+  if not node then
+    return
+  end
+
+  local directory = node.path
+  if vim.fn.executable('dotnet') ~= 1 then
+    vim.notify('dotnet CLI not found in PATH', vim.log.levels.ERROR)
+    return
+  end
+
+  local lines = vim.fn.systemlist('dotnet new --list')
+  if not lines or #lines == 0 then
+    vim.notify('Failed to list dotnet templates', vim.log.levels.ERROR)
+    return
+  end
+
+  local templates = {}
+  local started = false
+  for _, line in ipairs(lines) do
+    if line:match('^%s*-+$') then
+      started = true
+      goto continue
+    end
+    if not started then
+      goto continue
+    end
+    local short = line:match('%s([%w%-]+)%s+%w+%s*$') or line:match('%s([%w%-]+)%s*$')
+    local name = line:match('^%s*(.-)%s[%s%w%-]+[%s%w%-]+$') or line
+    if short then
+      templates[#templates + 1] = { short = short, name = vim.trim(name) }
+    end
+    ::continue::
+  end
+
+  if #templates == 0 then
+    vim.notify('No dotnet templates found', vim.log.levels.WARN)
+    return
+  end
+
+  local choices = {}
+  for _, t in ipairs(templates) do
+    table.insert(choices, t.short .. ' — ' .. t.name)
+  end
+
+  vim.ui.select(choices, { prompt = 'dotnet template:' }, function(choice, idx)
+    if not choice or not idx then
+      return
+    end
+    local template = templates[idx]
+    vim.ui.input({ prompt = 'Name (optional): ' }, function(name)
+      local cmd = { 'dotnet', 'new', template.short, '-o', directory, '--force' }
+      if name and name ~= '' then
+        table.insert(cmd, '-n')
+        table.insert(cmd, name)
+      end
+      local out = vim.fn.systemlist(table.concat(cmd, ' '))
+      if vim.v.shell_error ~= 0 then
+        vim.notify('dotnet new failed: ' .. table.concat(out, '\n'), vim.log.levels.ERROR)
+        return
+      end
+      vim.notify('Created from template ' .. template.short, vim.log.levels.INFO)
+      manager.refresh('dotnet', state)
+    end)
+  end)
+end
+
 M.open = function(state, toggle_directory)
   local node = state.tree:get_node()
 

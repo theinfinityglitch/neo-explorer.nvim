@@ -345,6 +345,7 @@ M.default_config = {
       ['<cr>'] = 'open',
       ['o'] = 'open',
       ['R'] = 'refresh',
+      ['t'] = 'add_from_template',
     },
   },
 
