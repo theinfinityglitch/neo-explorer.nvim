@@ -52,10 +52,7 @@ local function parse_dotnet_templates(lines)
         goto continue
       end
 
-      local name, short = line:match('^%s*(.-)%s%s+([%w%-%.,]+)%s+%[?')
-      if not name then
-        name, short = line:match('^%s*(.-)%s%s+([%w%-%.,]+)%s*$')
-      end
+      local name, short = line:match('^%s*(.-)%s%s+([%w%-%.,]+)%s+%S')
       if name and short then
         name = vim.trim(name)
         short = vim.trim(short)
@@ -155,54 +152,7 @@ M.add_directory = function(state, callback)
 end
 
 M.add_from_template = function(state)
-  local node = get_folder_node(state)
-  if not node then
-    return
-  end
-
-  local directory = node.path
-  if vim.fn.executable('dotnet') ~= 1 then
-    vim.notify('dotnet CLI not found in PATH', vim.log.levels.ERROR)
-    return
-  end
-
-  local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--columns-all' })
-  if not lines or #lines == 0 then
-    vim.notify('Failed to list dotnet templates', vim.log.levels.ERROR)
-    return
-  end
-
-  local templates = parse_dotnet_templates(lines)
-  if #templates == 0 then
-    vim.notify('No dotnet templates found', vim.log.levels.WARN)
-    return
-  end
-
-  local choices = {}
-  for _, t in ipairs(templates) do
-    table.insert(choices, t.name)
-  end
-
-  vim.ui.select(choices, { prompt = 'dotnet template:' }, function(choice, idx)
-    if not choice or not idx then
-      return
-    end
-    local template = templates[idx]
-    vim.ui.input({ prompt = 'Name (optional): ' }, function(name)
-      local cmd = { 'dotnet', 'new', template.short, '-o', directory, '--force' }
-      if name and name ~= '' then
-        table.insert(cmd, '-n')
-        table.insert(cmd, name)
-      end
-      local out = vim.fn.systemlist(table.concat(cmd, ' '))
-      if vim.v.shell_error ~= 0 then
-        vim.notify('dotnet new failed: ' .. table.concat(out, '\n'), vim.log.levels.ERROR)
-        return
-      end
-      vim.notify('Created from template ' .. template.short, vim.log.levels.INFO)
-      manager.refresh('dotnet', state)
-    end)
-  end)
+  return M.add(state)
 end
 
 M.open = function(state, toggle_directory)
