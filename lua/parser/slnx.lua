@@ -13,6 +13,10 @@ local function new_tree_handler()
     return tree_handler:new()
   end
 
+  tree_handler.root = {}
+  tree_handler.options = tree_handler.options or { noreduce = {} }
+  tree_handler._stack = { tree_handler.root }
+
   return tree_handler
 end
 

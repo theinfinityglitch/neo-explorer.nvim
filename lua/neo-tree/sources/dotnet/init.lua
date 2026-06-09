@@ -1,5 +1,6 @@
 local renderer = require('neo-tree.ui.renderer')
 
+local project_parser = require('parser.project')
 local sln = require('parser.sln')
 local slnx = require('parser.slnx')
 
@@ -24,6 +25,24 @@ local function find_solution(cwd)
   if #sln_files > 0 then
     return sln_files[1], 'sln'
   end
+end
+
+local function enrich_projects(projects)
+  for _, project in ipairs(projects or {}) do
+    project_parser.enrich(project)
+  end
+end
+
+local function enrich_folder_projects(folders)
+  for _, folder in ipairs(folders or {}) do
+    enrich_projects(folder.projects)
+    enrich_folder_projects(folder.children)
+  end
+end
+
+local function enrich_solution(solution)
+  enrich_projects(solution.projects)
+  enrich_folder_projects(solution.folders)
 end
 
 M.navigate = function(state, path)
@@ -52,6 +71,8 @@ M.navigate = function(state, path)
     renderer.show_nodes({}, state)
     return
   end
+
+  enrich_solution(solution)
 
   local nodes = items.build_nodes(solution)
   state.default_expanded_nodes = { nodes[1].id }

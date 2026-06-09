@@ -7,6 +7,7 @@
 ---@class DotnetProjectReference
 ---@field name string
 ---@field path string
+---@field include? string
 ---@field guid? string
 ---@field project? DotnetProject
 
@@ -16,6 +17,14 @@
 ---@field private_assets? string
 ---@field include_assets? string
 ---@field exclude_assets? string
+
+---@class DotnetImport
+---@field project string
+---@field condition? string
+
+---@class DotnetProjectProperties
+---@field sdk? string
+---@field target_frameworks string[]
 
 ---@class DotnetDiagnostics
 ---@field errors integer
@@ -31,6 +40,8 @@
 ---@field guid? string
 ---@field references DotnetProjectReference[]
 ---@field packages DotnetPackageReference[]
+---@field imports DotnetImport[]
+---@field properties DotnetProjectProperties
 ---@field diagnostics DotnetDiagnostics?
 
 ---@class DotnetFolder
