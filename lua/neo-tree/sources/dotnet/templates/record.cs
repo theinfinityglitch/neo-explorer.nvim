@@ -1,5 +1,5 @@
-namespace {{NAMESPACE}};
+namespace {{NAMESPACE }};
 
-public record {{CLASS_NAME}}
+public record {{CLASS_NAME }}
 {
 }

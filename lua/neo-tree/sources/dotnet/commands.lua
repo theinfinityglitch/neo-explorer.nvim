@@ -191,7 +191,7 @@ M.add = function(state, callback)
   if project_info then
     table.insert(choices, '--- Custom C# Templates ---')
     table.insert(templates, { type = 'header' })
-    
+
     local template_dir = debug.getinfo(1, 'S').source:match('@(.+)/commands.lua$') .. '/templates'
     local template_files = vim.fn.glob(template_dir .. '/*.cs', false, true)
     for _, template_file in ipairs(template_files) do
@@ -204,7 +204,7 @@ M.add = function(state, callback)
         namespace = project_info.computed_namespace,
       })
     end
-    
+
     table.insert(choices, '--- Dotnet Templates ---')
     table.insert(templates, { type = 'header' })
   end

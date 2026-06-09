@@ -1,5 +1,5 @@
-namespace {{NAMESPACE}};
+namespace {{NAMESPACE }};
 
-public enum {{CLASS_NAME}}
+public enum {{CLASS_NAME }}
 {
 }
