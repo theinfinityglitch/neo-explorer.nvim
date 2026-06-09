@@ -74,6 +74,24 @@ M.open = function(state, toggle_directory)
   end
 end
 
+M.delete = function(state, callback)
+  cc.delete(state, function(...)
+    if callback then
+      callback(...)
+    end
+    manager.refresh('dotnet', state)
+  end)
+end
+
+M.delete_visual = function(state, selected_nodes, callback)
+  cc.delete_visual(state, selected_nodes, function(...)
+    if callback then
+      callback(...)
+    end
+    manager.refresh('dotnet', state)
+  end)
+end
+
 M.refresh = function(state)
   manager.refresh('dotnet', state)
 end

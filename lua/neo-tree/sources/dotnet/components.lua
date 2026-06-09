@@ -58,9 +58,21 @@ M.icon = function(config, node, state)
 end
 
 M.name = function(config, node, state)
-  local hl = highlights.FILE_NAME
   local dotnet_type = node.extra and node.extra.dotnet_type
+  local is_actual_node = not dotnet_type
+      or dotnet_type == 'solution'
+      or dotnet_type == 'folder'
+      or dotnet_type == 'project'
+      or dotnet_type == 'project_folder'
+      or dotnet_type == 'project_files'
+      or dotnet_type == 'project_file'
+      or dotnet_type == 'project_reference'
 
+  if config.use_git_status_colors and is_actual_node then
+    return common.name(config, node, state)
+  end
+
+  local hl = highlights.FILE_NAME
   if dotnet_type == 'solution' then
     hl = highlights.ROOT_NAME
   elseif dotnet_type == 'folder' or dotnet_type == 'project' or dotnet_type == 'project_folder' or dotnet_type == 'project_files' then
@@ -73,6 +85,19 @@ M.name = function(config, node, state)
     text = node.name,
     highlight = hl,
   }
+end
+
+M.git_status = function(config, node, state)
+  local dotnet_type = node.extra and node.extra.dotnet_type
+  if dotnet_type and dotnet_type ~= 'solution' and dotnet_type ~= 'folder' and dotnet_type ~= 'project' and dotnet_type ~= 'project_folder' and dotnet_type ~= 'project_files' and dotnet_type ~= 'project_file' and dotnet_type ~= 'project_reference' then
+    return {}
+  end
+
+  if not node.path then
+    return {}
+  end
+
+  return common.git_status(config, node, state)
 end
 
 return vim.tbl_deep_extend('force', common, M)

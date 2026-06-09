@@ -4,6 +4,9 @@ local project_parser = require('parser.project')
 local sln = require('parser.sln')
 local slnx = require('parser.slnx')
 
+local git = require('neo-tree.git')
+local events = require('neo-tree.events')
+local manager = require('neo-tree.sources.manager')
 local items = require('neo-tree.sources.dotnet.lib.items')
 
 local M = {
@@ -11,7 +14,32 @@ local M = {
   display_name = '󰘐 .NET',
 }
 
-M.setup = function(config, global_config) end
+local function get_state(tabid)
+  return manager.get_state(M.name, tabid)
+end
+
+M.setup = function(config, global_config)
+  if not global_config.enable_git_status then
+    return
+  end
+
+  manager.subscribe(M.name, {
+    event = events.BEFORE_RENDER,
+    handler = function(state)
+      local this_state = get_state()
+      if state == this_state and this_state and this_state.path then
+        git.status(this_state.path, this_state.git_base_by_worktree)
+      end
+    end,
+  })
+
+  manager.subscribe(M.name, {
+    event = events.GIT_EVENT,
+    handler = function()
+      manager.refresh(M.name)
+    end,
+  })
+end
 
 local function find_solution(cwd)
   local slnx_files = vim.fn.glob(cwd .. '/*.slnx', false, true)
@@ -78,6 +106,15 @@ M.navigate = function(state, path)
   state.default_expanded_nodes = { nodes[1].id }
 
   renderer.show_nodes(nodes, state)
+
+  local config = require('neo-tree').config
+  if config.enable_git_status then
+    if config.git_status_async and config.git_status_async_options then
+      git.status_async(state.path, state.git_base_by_worktree, config.git_status_async_options)
+    else
+      git.status(state.path, state.git_base_by_worktree, false)
+    end
+  end
 end
 
 M.get_cwd = function(state)
@@ -99,13 +136,15 @@ M.default_config = {
     directory = {
       { 'indent' },
       { 'icon' },
-      { 'name' },
+      { 'name',       use_git_status_colors = true },
+      { 'git_status', zindex = 10,                 align = 'right', hide_when_expanded = true },
     },
 
     file = {
       { 'indent' },
       { 'icon' },
-      { 'name' },
+      { 'name',       use_git_status_colors = true },
+      { 'git_status', zindex = 10,                 align = 'right' },
     },
   },
 }
