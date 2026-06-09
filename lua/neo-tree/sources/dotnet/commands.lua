@@ -32,6 +32,70 @@ local function get_folder_node(state)
   end
 end
 
+local function get_project_node(state)
+  local tree = state.tree
+  local node = tree:get_node()
+  if not node then
+    return nil
+  end
+
+  local last_id = node:get_id()
+  while node do
+    if node.type == 'directory' and node.path then
+      local dotnet_type = node.extra and node.extra.dotnet_type or nil
+      if dotnet_type == 'project' then
+        return node
+      end
+    end
+
+    local parent_id = node:get_parent_id()
+    if not parent_id or parent_id == last_id then
+      return nil
+    end
+
+    last_id = parent_id
+    node = tree:get_node(parent_id)
+  end
+  return nil
+end
+
+local function parse_project_root_namespace(project_path)
+  local file = io.open(project_path, 'r')
+  if not file then
+    return nil
+  end
+  local content = file:read('*a')
+  file:close()
+
+  local root_ns = content:match('<RootNamespace>([^<]+)</RootNamespace>')
+  if root_ns then
+    return root_ns
+  end
+
+  local project_name = vim.fn.fnamemodify(project_path, ':t:r')
+  return project_name
+end
+
+local function calculate_namespace(project_dir, current_folder, base_namespace)
+  if not base_namespace then
+    return base_namespace
+  end
+
+  local rel_path = current_folder:sub(#project_dir + 2)
+  if rel_path == '' or rel_path == '.' then
+    return base_namespace
+  end
+
+  local ns_parts = { base_namespace }
+  for part in rel_path:gmatch('[^/\\]+') do
+    if part ~= '.' and part ~= '..' then
+      table.insert(ns_parts, part)
+    end
+  end
+
+  return table.concat(ns_parts, '.')
+end
+
 local function parse_dotnet_templates(lines)
   local templates = {}
   local started = false
@@ -105,21 +169,66 @@ M.add = function(state, callback)
 
   local directory = node.path
   local templates = {}
+  local project_info = nil
 
-  if vim.fn.executable('dotnet') == 1 then
-    local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--columns-all' })
-    if vim.v.shell_error == 0 and lines and #lines > 0 then
-      templates = parse_dotnet_templates(lines)
+  local project_node = get_project_node(state)
+  if project_node and project_node.path then
+    local project_files = vim.fn.glob(project_node.path .. '/*.csproj', false, true)
+    if project_files and #project_files > 0 then
+      local project_path = project_files[1]
+      local base_ns = parse_project_root_namespace(project_path)
+      local computed_ns = calculate_namespace(project_node.path, directory, base_ns)
+      project_info = {
+        project_path = project_path,
+        base_namespace = base_ns,
+        computed_namespace = computed_ns,
+      }
     end
   end
 
   local choices = { 'Empty file' }
-  for _, template in ipairs(templates) do
-    table.insert(choices, template.name)
+
+  if project_info then
+    table.insert(choices, '--- Custom C# Templates ---')
+    table.insert(templates, { type = 'header' })
+    
+    local template_dir = debug.getinfo(1, 'S').source:match('@(.+)/commands.lua$') .. '/templates'
+    for template_name in vim.fn.glob(template_dir .. '/*.cs', false, true):gmatch('[^\n]+') do
+      local short_name = vim.fn.fnamemodify(template_name, ':t:r')
+      table.insert(choices, short_name:sub(1, 1):upper() .. short_name:sub(2))
+      table.insert(templates, {
+        type = 'custom',
+        name = short_name,
+        template_file = template_name,
+        namespace = project_info.computed_namespace,
+      })
+    end
+    
+    table.insert(choices, '--- Dotnet Templates ---')
+    table.insert(templates, { type = 'header' })
+  end
+
+  if vim.fn.executable('dotnet') == 1 then
+    local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--language', 'C#', '--columns-all' })
+    if vim.v.shell_error == 0 and lines and #lines > 0 then
+      local dotnet_templates = parse_dotnet_templates(lines)
+      for _, template in ipairs(dotnet_templates) do
+        table.insert(choices, template.name)
+        table.insert(templates, {
+          type = 'dotnet',
+          name = template.name,
+          short = template.short,
+        })
+      end
+    end
   end
 
   vim.ui.select(choices, { prompt = 'Create file from template:' }, function(choice, idx)
     if not choice or not idx then
+      return
+    end
+
+    if choice:match('^%s*-+') then
       return
     end
 
@@ -128,13 +237,55 @@ M.add = function(state, callback)
       return
     end
 
-    local template = templates[idx - 1]
-    vim.ui.input({ prompt = 'Name (leave empty to use default): ' }, function(name)
-      template.name_input = name
-      create_file_from_template(state, directory, template, callback)
-    end)
+    if idx <= #templates then
+      local template = templates[idx]
+      if template.type == 'header' then
+        return
+      end
+
+      if template.type == 'custom' then
+        vim.ui.input({ prompt = 'Class name: ' }, function(class_name)
+          if not class_name or class_name == '' then
+            return
+          end
+          local file_path = directory .. '/' .. class_name .. '.cs'
+          local template_file = io.open(template.template_file, 'r')
+          if not template_file then
+            vim.notify('Template file not found: ' .. template.template_file, vim.log.levels.ERROR)
+            return
+          end
+          local content = template_file:read('*a')
+          template_file:close()
+
+          content = content:gsub('{{NAMESPACE}}', template.namespace)
+          content = content:gsub('{{CLASS_NAME}}', class_name)
+
+          local out_file = io.open(file_path, 'w')
+          if not out_file then
+            vim.notify('Failed to create file: ' .. file_path, vim.log.levels.ERROR)
+            return
+          end
+          out_file:write(content)
+          out_file:close()
+
+          vim.notify('Created ' .. class_name .. '.cs in ' .. directory, vim.log.levels.INFO)
+          manager.refresh('dotnet', state)
+        end)
+        return
+      end
+
+      if template.type == 'dotnet' then
+        local template_obj = template
+        vim.ui.input({ prompt = 'Name (leave empty to use default): ' }, function(name)
+          template_obj.name_input = name
+          create_file_from_template(state, directory, template_obj, callback)
+        end)
+        return
+      end
+    end
   end)
 end
+
 
 M.add_directory = function(state, callback)
   local node = get_folder_node(state)
