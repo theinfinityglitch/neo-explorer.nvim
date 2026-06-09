@@ -32,6 +32,65 @@ local function get_folder_node(state)
   end
 end
 
+local function parse_dotnet_templates(lines)
+  local templates = {}
+  local started = false
+
+  for _, line in ipairs(lines) do
+    if not started then
+      if line:match('^%s*Template Name%s+Short Name') then
+        started = true
+      end
+    else
+      if line:match('^%s*$') then
+        break
+      end
+      if line:match('^%s*-+') then
+        goto continue
+      end
+
+      local raw_name = vim.trim(line:sub(1, 42) or '')
+      local raw_short = vim.trim(line:sub(43, 72) or '')
+      if raw_name ~= '' and raw_short ~= '' then
+        table.insert(templates, { name = raw_name, short = raw_short })
+      end
+    end
+    ::continue::
+  end
+
+  return templates
+end
+
+local function create_file_from_template(state, directory, template, callback)
+  if template == 'empty' then
+    fs_actions.create_node(directory, function(_)
+      if callback then
+        callback()
+      end
+      manager.refresh('dotnet', state)
+    end, directory)
+    return
+  end
+
+  local cmd = { 'dotnet', 'new', template.short, '-o', directory, '--force' }
+  if template.name_input and template.name_input ~= '' then
+    table.insert(cmd, '-n')
+    table.insert(cmd, template.name_input)
+  end
+
+  local output = vim.fn.systemlist(cmd)
+  if vim.v.shell_error ~= 0 then
+    vim.notify('dotnet new failed: ' .. table.concat(output, '\n'), vim.log.levels.ERROR)
+    return
+  end
+
+  if callback then
+    callback()
+  end
+  vim.notify('Created ' .. template.short .. ' in ' .. directory, vim.log.levels.INFO)
+  manager.refresh('dotnet', state)
+end
+
 M.add = function(state, callback)
   local node = get_folder_node(state)
   if not node then
@@ -39,12 +98,36 @@ M.add = function(state, callback)
   end
 
   local directory = node.path
-  fs_actions.create_node(directory, function(destination)
-    if callback then
-      callback(destination)
+  local templates = {}
+
+  if vim.fn.executable('dotnet') == 1 then
+    local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item' })
+    if vim.v.shell_error == 0 and lines and #lines > 0 then
+      templates = parse_dotnet_templates(lines)
     end
-    manager.refresh('dotnet', state)
-  end, directory)
+  end
+
+  local choices = { 'Empty file' }
+  for _, template in ipairs(templates) do
+    table.insert(choices, string.format('%s — %s', template.short, template.name))
+  end
+
+  vim.ui.select(choices, { prompt = 'Create file from template:' }, function(choice, idx)
+    if not choice or not idx then
+      return
+    end
+
+    if idx == 1 then
+      create_file_from_template(state, directory, 'empty', callback)
+      return
+    end
+
+    local template = templates[idx - 1]
+    vim.ui.input({ prompt = 'Name (leave empty to use default): ' }, function(name)
+      template.name_input = name
+      create_file_from_template(state, directory, template, callback)
+    end)
+  end)
 end
 
 M.add_directory = function(state, callback)
