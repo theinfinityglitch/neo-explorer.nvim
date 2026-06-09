@@ -15,7 +15,11 @@ local function get_folder_node(state)
   local last_id = node:get_id()
   while node do
     if node.type == 'directory' and node.path then
-      return node
+      local dotnet_type = node.extra and node.extra.dotnet_type or nil
+      if dotnet_type == 'project' or dotnet_type == 'project_folder' then
+        return node
+      end
+      return nil
     end
 
     local parent_id = node:get_parent_id()

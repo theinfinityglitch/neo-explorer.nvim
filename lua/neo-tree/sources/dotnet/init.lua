@@ -261,11 +261,16 @@ local function load_solution(state, cwd, solution)
   state.default_expanded_nodes = { nodes[1].id }
   renderer.show_nodes(nodes, state)
   state._dotnet_solutions = nil
+  local previous_selected = state._dotnet_selected_solution
   state._dotnet_selected_solution = solution
 
   local config = require('neo-tree').config
   if config.dotnet and config.dotnet.roslyn and config.dotnet.roslyn.enable then
-    set_roslyn_target(solution.path)
+    local prev_path = previous_selected and normalize_solution_path(previous_selected.path) or nil
+    local new_path = normalize_solution_path(solution.path)
+    if prev_path ~= new_path then
+      set_roslyn_target(solution.path)
+    end
   end
 
   if config.enable_git_status then
