@@ -1,0 +1,4 @@
+[*.cs]
+# Disable formatting for generated or specific C# files
+insert_final_newline = false
+trim_trailing_whitespace = false

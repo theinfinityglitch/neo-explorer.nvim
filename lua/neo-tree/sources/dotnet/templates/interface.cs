@@ -1,5 +1,5 @@
-namespace {{NAMESPACE }};
+namespace {{NAMESPACE}};
 
-public interface I {{CLASS_NAME }}
+public interface I {{FILE_NAME}}
 {
 }

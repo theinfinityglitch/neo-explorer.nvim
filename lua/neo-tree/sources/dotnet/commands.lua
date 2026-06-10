@@ -210,7 +210,8 @@ M.add = function(state, callback)
   end
 
   if vim.fn.executable('dotnet') == 1 then
-    local lines = vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--language', 'C#', '--columns-all' })
+    local lines =
+      vim.fn.systemlist({ 'dotnet', 'new', 'list', '--type', 'item', '--language', 'C#', '--columns-all' })
     if vim.v.shell_error == 0 and lines and #lines > 0 then
       local dotnet_templates = parse_dotnet_templates(lines)
       for _, template in ipairs(dotnet_templates) do
@@ -239,17 +240,17 @@ M.add = function(state, callback)
     end
 
     if idx <= #templates then
-      local template = templates[idx]
+      local template = templates[idx - 1]
       if template.type == 'header' then
         return
       end
 
       if template.type == 'custom' then
-        vim.ui.input({ prompt = 'Class name: ' }, function(class_name)
-          if not class_name or class_name == '' then
+        vim.ui.input({ prompt = template.name:gsub('^%l', string.upper) .. ' name: ' }, function(file_name)
+          if not file_name or file_name == '' then
             return
           end
-          local file_path = directory .. '/' .. class_name .. '.cs'
+          local file_path = directory .. '/' .. file_name .. '.cs'
           local template_file = io.open(template.template_file, 'r')
           if not template_file then
             vim.notify('Template file not found: ' .. template.template_file, vim.log.levels.ERROR)
@@ -259,7 +260,7 @@ M.add = function(state, callback)
           template_file:close()
 
           content = content:gsub('{{NAMESPACE}}', template.namespace)
-          content = content:gsub('{{CLASS_NAME}}', class_name)
+          content = content:gsub('{{FILE_NAME}}', file_name)
 
           local out_file = io.open(file_path, 'w')
           if not out_file then
@@ -269,7 +270,7 @@ M.add = function(state, callback)
           out_file:write(content)
           out_file:close()
 
-          vim.notify('Created ' .. class_name .. '.cs in ' .. directory, vim.log.levels.INFO)
+          vim.notify('Created ' .. file_name .. '.cs in ' .. directory, vim.log.levels.INFO)
           manager.refresh('dotnet', state)
         end)
         return
@@ -286,7 +287,6 @@ M.add = function(state, callback)
     end
   end)
 end
-
 
 M.add_directory = function(state, callback)
   local node = get_folder_node(state)

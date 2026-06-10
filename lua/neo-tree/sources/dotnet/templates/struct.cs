@@ -1,5 +1,5 @@
-namespace {{NAMESPACE }};
+namespace {{NAMESPACE}};
 
-public struct {{CLASS_NAME }}
+public struct {{FILE_NAME}}
 {
 }

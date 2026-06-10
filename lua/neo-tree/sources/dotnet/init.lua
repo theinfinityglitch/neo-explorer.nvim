@@ -125,8 +125,8 @@ load_roslyn_plugin = function()
     if plugin_key then
       ok = pcall(lazy.load, { plugins = { plugin_key }, wait = true })
     else
-      ok = pcall(lazy.load, { plugins = { 'roslyn.nvim' }, wait = true }) or
-          pcall(lazy.load, { plugins = { 'seblyng/roslyn.nvim' }, wait = true })
+      ok = pcall(lazy.load, { plugins = { 'roslyn.nvim' }, wait = true })
+        or pcall(lazy.load, { plugins = { 'seblyng/roslyn.nvim' }, wait = true })
     end
   end
 
@@ -176,7 +176,9 @@ local function set_roslyn_target(solution_path)
   local existing = vim.lsp.get_clients({ name = 'roslyn' })
   for _, ex_client in ipairs(existing) do
     local force_stop = vim.uv.os_uname().sysname == 'Windows_NT'
-    pcall(function() ex_client:stop(force_stop) end)
+    pcall(function()
+      ex_client:stop(force_stop)
+    end)
   end
 
   -- Wait briefly for clients to stop
@@ -354,15 +356,15 @@ M.default_config = {
     directory = {
       { 'indent' },
       { 'icon' },
-      { 'name',       use_git_status_colors = true },
-      { 'git_status', zindex = 10,                 align = 'right', hide_when_expanded = true },
+      { 'name', use_git_status_colors = true },
+      { 'git_status', zindex = 10, align = 'right', hide_when_expanded = true },
     },
 
     file = {
       { 'indent' },
       { 'icon' },
-      { 'name',       use_git_status_colors = true },
-      { 'git_status', zindex = 10,                 align = 'right' },
+      { 'name', use_git_status_colors = true },
+      { 'git_status', zindex = 10, align = 'right' },
     },
   },
 }

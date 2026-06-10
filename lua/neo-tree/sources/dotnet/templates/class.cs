@@ -1,5 +1,5 @@
-namespace {{NAMESPACE }};
+namespace {{NAMESPACE}};
 
-public class {{CLASS_NAME }}
+public class {{FILE_NAME}}
 {
 }
